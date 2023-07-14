@@ -1,26 +1,50 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:args/args.dart';
+import 'package:dart_triage_updater/dart_triage_updater.dart';
+import 'package:dart_triage_updater/update_type.dart';
+import 'package:github/github.dart';
 
-/// Provides the `YouTubeApi` class.
-import 'package:googleapis/firestore/v1.dart';
-
-void main(List<String> arguments) {
-  var argParser = ArgParser()
+Future<void> main(List<String> arguments) async {
+  final argParser = ArgParser()
     ..addMultiOption(
       'update',
       allowed: ['issues', 'pullrequests', 'googlers'],
       defaultsTo: ['issues', 'pullrequests', 'googlers'],
       help: 'Which types to update',
+    )
+    ..addOption('api-key')
+    ..addFlag(
+      'help',
+      abbr: 'h',
+      defaultsTo: false,
+      negatable: false,
     );
+  List<String> toUpdate;
+  String? apikey;
   try {
-    var parse = argParser.parse(arguments);
-    var toUpdate = parse['update'] as List<String>;
-    Updater(toUpdate);
+    final parse = argParser.parse(arguments);
+    if (parse['help']) {
+      print(argParser.usage);
+      exit(0);
+    }
+    toUpdate = parse['update'] as List<String>;
+    apikey = parse['api-key'] as String?;
   } catch (e) {
     print(
         'Invalid arguments "$arguments" passed.\n\n Usage: ${argParser.usage}');
+    exit(1);
   }
-}
-
-class Updater {
-  Updater(List<String> toUpdate);
+  final Authentication authentication;
+  if (apikey == null) {
+    authentication = Authentication.anonymous();
+  } else {
+    authentication = Authentication.withToken(apikey);
+  }
+  final github = GitHub(auth: authentication);
+  final updateTypes = toUpdate
+      .map((e) => UpdateType.values.firstWhere((type) => type.name == e))
+      .toList();
+  await updateThese(updateTypes, github);
 }
