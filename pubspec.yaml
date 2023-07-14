@@ -1,10 +1,9 @@
 name: dart_triage_updater
 description: A sample command-line application.
 version: 1.0.0
-# repository: https://github.com/my_org/my_repo
 
 environment:
-  sdk: ^3.1.0-39.0.dev
+  sdk: ^3.0.0
 
 dependencies:
   args: ^2.4.2
