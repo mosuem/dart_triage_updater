@@ -1,6 +1,10 @@
 enum UpdateType {
-  issues,
-  pullrequests,
-  googlers,
-  testType,
+  issues('issue'),
+  pullrequests('pr'),
+  googlers(''),
+  testType('');
+
+  final String short;
+
+  const UpdateType(this.short);
 }

@@ -12,6 +12,7 @@ on:
   schedule:
     - cron: '0 14 * * 1-5' # Every workday at 14:00 UTC
     - cron: '0 0 * * 0' # Once a week, at 00:00 UTC
+    - cron: '0 0 * * 0' # Once a week, at 00:00 UTC
 
 jobs:
   build:

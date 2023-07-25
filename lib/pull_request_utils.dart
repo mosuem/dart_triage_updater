@@ -23,14 +23,55 @@ extension ReviewerAddition on PullRequest {
   bool authorIsGoogler(Set<String> googlers) => googlers.contains(user?.login);
 
   bool get authorIsCopybara => user?.login == 'copybara-service[bot]';
-}
 
-String encodePR(PullRequest pr) {
-  final jsonEncode2 = jsonEncode({
-    'pr': pr,
-    'reviewers': pr.reviewers,
-  });
-  return jsonEncode2;
+  String encode() {
+    final jsonEncode2 = jsonEncode({
+      'pr': this,
+      'reviewers': reviewers,
+    });
+    return jsonEncode2;
+  }
+
+  PullRequest close() {
+    final pullRequest = PullRequest(
+      id: id,
+      nodeId: nodeId,
+      htmlUrl: htmlUrl,
+      diffUrl: diffUrl,
+      patchUrl: patchUrl,
+      number: number,
+      state: 'closed',
+      title: title,
+      body: body,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      closedAt: DateTime.now(),
+      mergedAt: mergedAt,
+      head: head,
+      base: base,
+      user: user,
+      draft: draft,
+      mergeCommitSha: mergeCommitSha,
+      merged: merged,
+      mergeable: mergeable,
+      mergedBy: mergedBy,
+      commentsCount: commentsCount,
+      commitsCount: commitsCount,
+      additionsCount: additionsCount,
+      deletionsCount: deletionsCount,
+      changedFilesCount: changedFilesCount,
+      labels: labels,
+      requestedReviewers: requestedReviewers,
+      reviewCommentCount: reviewCommentCount,
+      milestone: milestone,
+      rebaseable: rebaseable,
+      mergeableState: mergeableState,
+      maintainerCanModify: maintainerCanModify,
+      authorAssociation: authorAssociation,
+    );
+    pullRequest.reviewers = reviewers;
+    return pullRequest;
+  }
 }
 
 PullRequest decodePR(String json) {

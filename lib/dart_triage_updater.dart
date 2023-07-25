@@ -10,140 +10,160 @@ import 'repos.dart';
 import 'update_type.dart';
 import 'updater.dart';
 
-Future<void> updateThese(List<UpdateType> updateTypes, GitHub github) async {
-  final updater = Updater();
-  updater.text.stream.listen((event) => print(event));
-  if (updateTypes.contains(UpdateType.issues)) {
-    await update(UpdateType.issues, github, updater, saveAllIssues);
+class TriageUpdater {
+  final GitHub github;
+  final Updater updater;
+
+  TriageUpdater(this.github) : updater = Updater();
+
+  Future<void> updateThese(List<UpdateType> updateTypes) async {
+    updater.text.stream.listen((event) => print(event));
+    if (updateTypes.contains(UpdateType.issues)) {
+      final issuesByRepo = await DatabaseReference.getData(
+        UpdateType.issues,
+        Issue.fromJson,
+      );
+      await update(
+        UpdateType.issues,
+        saveAllIssues,
+        issuesByRepo,
+      );
+    }
+    if (updateTypes.contains(UpdateType.pullrequests)) {
+      final pullrequestsByRepo = await DatabaseReference.getData(
+        UpdateType.pullrequests,
+        PullRequest.fromJson,
+      );
+      await update(
+        UpdateType.pullrequests,
+        saveAllPullrequests,
+        pullrequestsByRepo,
+      );
+    }
+    if (updateTypes.contains(UpdateType.googlers)) {
+      await updateGooglers();
+    }
   }
-  if (updateTypes.contains(UpdateType.pullrequests)) {
-    await update(UpdateType.pullrequests, github, updater, saveAllPullrequests);
+
+  Future<void> updateGooglers() async {
+    updater.open('Fetch googlers');
+    final googlersGoogle =
+        await github.organizations.listUsers('google').toList();
+    updater.set('Fetched ${googlersGoogle.length} googlers from "google"');
+    final googlersDart =
+        await github.organizations.listUsers('dart-lang').toList();
+    updater.set('Fetched ${googlersDart.length} googlers from "dart-lang"');
+    final googlers = (googlersGoogle + googlersDart).toSet().toList();
+    updater.set('Store googlers in database');
+    final jsonEncode2 = jsonEncode(googlers);
+    await DatabaseReference.saveGooglers(jsonEncode2);
+    updater.set('Done!');
+    updater.close();
   }
-  if (updateTypes.contains(UpdateType.googlers)) {
-    await updateGooglers(github, updater);
-  }
-}
 
-Future<void> updateGooglers(GitHub github, Updater updater) async {
-  updater.open('Fetch googlers');
-  final googlersGoogle =
-      await github.organizations.listUsers('google').toList();
-  updater.set('Fetched ${googlersGoogle.length} googlers from "google"');
-  final googlersDart =
-      await github.organizations.listUsers('dart-lang').toList();
-  updater.set('Fetched ${googlersDart.length} googlers from "dart-lang"');
-  final googlers = (googlersGoogle + googlersDart).toSet().toList();
-  updater.set('Store googlers in database');
-  final jsonEncode2 = jsonEncode(googlers);
-  await DatabaseReference.saveGooglers(jsonEncode2);
-  updater.set('Done!');
-  updater.close();
-}
+  Future<void> update<T>(
+    UpdateType type,
+    Future<void> Function(
+      RepositorySlug,
+      DatabaseReference,
+      List<T>,
+    ) saveToDatabase,
+    Map<RepositorySlug, List<T>> items,
+  ) async {
+    updater.status.add(true);
 
-Future<void> update(
-  UpdateType type,
-  GitHub github,
-  Updater updater,
-  Future<void> Function(GitHub, RepositorySlug, DatabaseReference, Updater)
-      saveToDatabase,
-) async {
-  final dateTime = DateTime.now();
-
-  updater.status.add(true);
-
-  final repositories =
-      github.repositories.listOrganizationRepositories('dart-lang');
-  final dartLangRepos = await repositories
-      .where((repository) => !repository.archived)
-      .map((repository) => repository.slug())
-      .where((slug) => !exludeRepos.contains(slug))
-      .toList();
-  for (final slug in [...dartLangRepos, ...includeRepos]) {
-    try {
-      final ref = DatabaseReference(type, slug);
-      final lastUpdated = await ref.getLastUpdated();
-      final daysSinceUpdate = DateTime.now().difference(lastUpdated).inDays;
-      if (daysSinceUpdate > -1) {
-        ref.setLastUpdated(dateTime);
+    final repositories =
+        github.repositories.listOrganizationRepositories('dart-lang');
+    final dartLangRepos = await repositories
+        .where((repository) => !repository.archived)
+        .map((repository) => repository.slug())
+        .where((slug) => !exludeRepos.contains(slug))
+        .toList();
+    for (final slug in [...dartLangRepos, ...includeRepos]) {
+      try {
+        final ref = DatabaseReference(type, slug);
         final status =
             'Get $type for ${slug.fullName} with ${github.rateLimitRemaining} '
             'remaining requests';
-        ref.deleteAllData();
 
         updater.set(status);
-        await saveToDatabase(github, slug, ref, updater);
-      } else {
-        final status =
-            'Not updating ${slug.fullName} has been updated $daysSinceUpdate '
-            'days ago';
-        updater.set(status);
+        await saveToDatabase(slug, ref, items[slug] ?? []);
+      } catch (e) {
+        updater.set(e.toString());
       }
-    } catch (e) {
-      updater.set(e.toString());
+    }
+
+    updater.close();
+  }
+
+  Future<void> saveAllPullrequests(
+    RepositorySlug slug,
+    DatabaseReference ref,
+    List<PullRequest> pullrequests,
+  ) async {
+    await github.pullRequests
+        .list(slug, pages: 1000)
+        .forEach((pullrequest) async {
+      final oldPullrequest =
+          pullrequests.where((pr) => pr.id == pullrequest.id).firstOrNull;
+      final reviewers = await getReviewers(github, slug, pullrequest);
+      pullrequest.reviewers = reviewers;
+      await DatabaseReference.addChange(
+        UpdateType.pullrequests,
+        pullrequest.id.toString(),
+        json.encode(oldPullrequest),
+        jsonEncode(pullrequest),
+      );
+    });
+    for (final remainingPr in pullrequests) {
+      await DatabaseReference.addChange(
+        UpdateType.issues,
+        remainingPr.id.toString(),
+        json.encode(remainingPr),
+        jsonEncode(remainingPr.close()),
+      );
     }
   }
 
-  updater.close();
-}
-
-Future<void> saveAllPullrequests(
-  GitHub github,
-  RepositorySlug slug,
-  DatabaseReference ref,
-  Updater updater,
-) async {
-  await github.pullRequests.list(slug, pages: 1000).forEach((pr) async {
-    final list = await getReviewers(github, slug, pr);
-    pr.reviewers = list;
-    await addPullRequestToDatabase(pr, ref, updater.text.sink);
-  });
-}
-
-Future<List<User>> getReviewers(
-  GitHub github,
-  RepositorySlug slug,
-  PullRequest pr,
-) async {
-  final reviewers = await github.pullRequests
-      .listReviews(slug, pr.number!)
-      .map((prReview) => prReview.user)
-      .toList();
-  // Deduplicate reviewers
-  final uniqueNames = reviewers.map((e) => e.login).whereType<String>().toSet();
-  reviewers.retainWhere((reviewer) => uniqueNames.remove(reviewer.login));
-  return reviewers;
-}
-
-Future<void> saveAllIssues(
-  GitHub github,
-  RepositorySlug slug,
-  DatabaseReference ref,
-  Updater updater,
-) async {
-  await github.issues.listByRepo(slug, perPage: 1000).forEach((pr) async {
-    if (pr.pullRequest == null) {
-      await addIssueToDatabase(pr, ref, updater.text.sink);
+  Future<void> saveAllIssues(
+    RepositorySlug slug,
+    DatabaseReference ref,
+    List<Issue> issues,
+  ) async {
+    await github.issues.listByRepo(slug, perPage: 1000).forEach((issue) async {
+      final oldIssue =
+          issues.where((element) => element.id == issue.id).firstOrNull;
+      await DatabaseReference.addChange(
+        UpdateType.issues,
+        issue.id.toString(),
+        json.encode(oldIssue),
+        jsonEncode(issue),
+      );
+      if (oldIssue != null) issues.remove(oldIssue);
+    });
+    for (final remainingIssue in issues) {
+      await DatabaseReference.addChange(
+        UpdateType.issues,
+        remainingIssue.id.toString(),
+        json.encode(remainingIssue),
+        jsonEncode(remainingIssue.close()),
+      );
     }
-  });
-}
+  }
 
-Future<void> addPullRequestToDatabase(
-  PullRequest pr,
-  DatabaseReference ref, [
-  StreamSink<String?>? logger,
-]) async {
-  logger?.add('\tHandle PR ${pr.id} from ${pr.base!.repo!.slug().fullName}');
-  final jsonEncode2 = jsonEncode({pr.id!.toString(): encodePR(pr)});
-  return await ref.addData(jsonEncode2);
-}
-
-Future<void> addIssueToDatabase(
-  Issue issue,
-  DatabaseReference ref, [
-  StreamSink<String?>? logger,
-]) async {
-  logger?.add(
-      '\tHandle Issue ${issue.id} from ${issue.repositoryUrl?.substring('https://api.github.com/repos/'.length)}');
-  return await ref
-      .addData(jsonEncode({issue.id.toString(): encodeIssue(issue)}));
+  Future<List<User>> getReviewers(
+    GitHub github,
+    RepositorySlug slug,
+    PullRequest pr,
+  ) async {
+    final reviewers = await github.pullRequests
+        .listReviews(slug, pr.number!)
+        .map((prReview) => prReview.user)
+        .toList();
+    // Deduplicate reviewers
+    final uniqueNames =
+        reviewers.map((e) => e.login).whereType<String>().toSet();
+    reviewers.retainWhere((reviewer) => uniqueNames.remove(reviewer.login));
+    return reviewers;
+  }
 }

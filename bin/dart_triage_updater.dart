@@ -46,5 +46,5 @@ Future<void> main(List<String> arguments) async {
   final updateTypes = toUpdate
       .map((e) => UpdateType.values.firstWhere((type) => type.name == e))
       .toList();
-  await updateThese(updateTypes, github);
+  await TriageUpdater(github).updateThese(updateTypes);
 }

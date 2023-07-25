@@ -29,4 +29,43 @@ extension IssueUtils on Issue {
   }
 
   bool authorIsGoogler(Set<String> googlers) => googlers.contains(user?.login);
+
+  Issue close() {
+    return Issue(
+      id: id,
+      url: url,
+      htmlUrl: htmlUrl,
+      number: number,
+      state: 'closed',
+      title: title,
+      user: user,
+      labels: labels,
+      assignee: assignee,
+      assignees: assignees,
+      milestone: milestone,
+      commentsCount: commentsCount,
+      pullRequest: pullRequest,
+      createdAt: createdAt,
+      closedAt: DateTime.now(),
+      updatedAt: updatedAt,
+      body: body,
+      closedBy: closedBy,
+      activeLockReason: activeLockReason,
+      authorAssociation: authorAssociation,
+      bodyHtml: bodyHtml,
+      bodyText: bodyText,
+      commentsUrl: commentsUrl,
+      draft: draft,
+      eventsUrl: eventsUrl,
+      labelsUrl: labelsUrl,
+      locked: locked,
+      nodeId: nodeId,
+      performedViaGithubApp: performedViaGithubApp,
+      reactions: reactions,
+      repository: repository,
+      repositoryUrl: repositoryUrl,
+      stateReason: stateReason,
+      timelineUrl: timelineUrl,
+    );
+  }
 }
