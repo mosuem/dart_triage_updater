@@ -207,7 +207,7 @@ void main() {
         jsonEncode(issue.close()),
       );
     },
-    skip: 'test',
+    skip: 'This uploads fake data',
   );
 
   test(
@@ -217,5 +217,6 @@ void main() {
           await DatabaseReference.getData(UpdateType.issues, Issue.fromJson);
       expect(map.values.first.first.state, 'closed');
     },
+    skip: 'This checks the uploaded fake data',
   );
 }
