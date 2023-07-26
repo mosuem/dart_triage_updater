@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dart_triage_updater/differ.dart';
 import 'package:json_diff/json_diff.dart';
 import 'package:test/test.dart';
@@ -33,7 +35,7 @@ void main() {
 
   test('Diff complex', () {
     change(jsonA, jsonB);
-    change(issue1, issue2);
+    change(jsonDecode(jsonEncode(issue1)), jsonDecode(jsonEncode(issue2)));
   });
 }
 

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:dart_triage_updater/data_diff.dart';
 import 'package:github/github.dart';
 
 import 'firebase_database.dart';
@@ -21,7 +22,8 @@ class TriageUpdater {
     if (updateTypes.contains(UpdateType.issues)) {
       final issuesByRepo = await DatabaseReference.getData(
         UpdateType.issues,
-        Issue.fromJson,
+        (initial, changes) =>
+            DataDiff(initial, changes, Issue.fromJson).applied,
       );
       await update(
         UpdateType.issues,
@@ -32,7 +34,8 @@ class TriageUpdater {
     if (updateTypes.contains(UpdateType.pullrequests)) {
       final pullrequestsByRepo = await DatabaseReference.getData(
         UpdateType.pullrequests,
-        PullRequest.fromJson,
+        (initial, changes) =>
+            DataDiff(initial, changes, PullRequest.fromJson).applied,
       );
       await update(
         UpdateType.pullrequests,

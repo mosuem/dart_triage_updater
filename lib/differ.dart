@@ -5,10 +5,6 @@ import 'package:json_diff/json_diff.dart';
 
 typedef Json = Map<String, dynamic>;
 
-Object diff(Object json1, Object json2) {
-  return JsonDiffer.fromJson(json1, json2).diff().toJsonString();
-}
-
 extension DiffNodeSerialization on DiffNode {
   T apply<T>(T child) {
     Object applied;

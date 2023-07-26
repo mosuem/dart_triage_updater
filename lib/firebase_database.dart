@@ -45,7 +45,10 @@ class DatabaseReference {
 
   static Future<Map<RepositorySlug, List<T>>> getData<T>(
     UpdateType type,
-    T Function(Map<String, dynamic>) fromJson,
+    T Function(
+      Map<String, dynamic> initial,
+      Map<DateTime, DiffNode> changes,
+    ) fromJson,
   ) async {
     final uri = Uri.parse('${firebaseUrl}changes/${type.name}.json');
 
@@ -60,7 +63,7 @@ class DatabaseReference {
       final id = entry.key;
       final value = entry.value as Map<String, dynamic>;
       Map<String, dynamic>? initial;
-      final changes = <DiffNode>[];
+      final changes = <DateTime, DiffNode>{};
       for (final entry in value
           .map((key, value) => MapEntry(
                 DateTime.fromMillisecondsSinceEpoch(int.parse(key)),
@@ -71,22 +74,17 @@ class DatabaseReference {
         final value = entry.value as Map<String, dynamic>;
         if (value.containsKey('initial') && initial == null) {
           initial = jsonDecode(value['initial']);
+          changes[entry.key] = DiffNode([]);
         } else if (value.containsKey('diff')) {
           final value2 = value['diff'];
-          changes.add(diffNodeFromJson(value2));
+          changes[entry.key] = diffNodeFromJson(value2);
         } else {
           throw ArgumentError();
         }
       }
-      final repoUrl = initial!['repository_url'] as String;
-      final split = repoUrl.split(r'/');
-      final repoSlug = split.skip(split.length - 2).join('/');
+      final repoSlug = getSlugFromUrl(initial!);
 
-      final allChanges =
-          changes.fold(DiffNode([]), (node1, node2) => node1 + node2);
-      final allTogether = allChanges.apply(initial);
-
-      final data = fromJson(allTogether);
+      final data = fromJson(initial, changes);
       map.update(
         RepositorySlug.full(repoSlug),
         (value) {
@@ -97,6 +95,13 @@ class DatabaseReference {
     }
 
     return map;
+  }
+
+  static String getSlugFromUrl(Map<String, dynamic> json) {
+    final repoUrl = json['repository_url'] as String;
+    final split = repoUrl.split(r'/');
+    final repoSlug = split.skip(split.length - 2).join('/');
+    return repoSlug;
   }
 
   static Future<void> addChange(

@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:dart_triage_updater/differ.dart';
 import 'package:dart_triage_updater/issue_utils.dart';
-import 'package:github/github.dart';
 import 'package:json_diff/json_diff.dart';
 import 'package:test/test.dart';
 
@@ -61,10 +60,8 @@ void main() {
   });
 
   test('Diff state', () {
-    final i1 = Issue.fromJson(issue1);
-    final i2 = Issue.fromJson(issue2);
-    final oneToTwo = getDiffStr(i1, i2);
-    final twoToClosed = getDiffStr(i1, i2.close());
+    final oneToTwo = getDiffStr(issue1, issue2);
+    final twoToClosed = getDiffStr(issue1, issue2.close());
     expect(oneToTwo.node['reactions']!.changed.values.first, [0, 2]);
     expect(twoToClosed.changed['state'], ['open', 'closed']);
   });

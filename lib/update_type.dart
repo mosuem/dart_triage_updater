@@ -2,7 +2,7 @@ enum UpdateType {
   issues('issue'),
   pullrequests('pr'),
   googlers(''),
-  testType('');
+  testType('testtype');
 
   final String short;
 
