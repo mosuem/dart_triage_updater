@@ -32,6 +32,12 @@ void main() {
     expect(
         dataDiff.applied(DateTime.fromMillisecondsSinceEpoch(7))!.upvotes, 2);
   });
+  test('Get time until 2 upvotes', () {
+    expect(
+      dataDiff.getTimeUntil((issue) => issue.upvotes == 2),
+      Duration(milliseconds: 5),
+    );
+  });
 }
 
 DiffNode getDiff(Issue i1, Issue i2) =>

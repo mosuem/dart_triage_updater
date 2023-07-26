@@ -30,4 +30,16 @@ class DataDiff<S> {
     }
     return result;
   }
+
+  Duration? getTimeUntil(bool Function(S) condition) {
+    var current = _initial;
+    final initialEntry = _changes.entries.first.key;
+    for (final element in _changes.entries) {
+      current = element.value.apply(current);
+      if (condition(fromJson(current))) {
+        return element.key.difference(initialEntry);
+      }
+    }
+    return null;
+  }
 }
