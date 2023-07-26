@@ -1,4 +1,3 @@
-
 import 'package:dart_triage_updater/firebase_database.dart';
 import 'package:dart_triage_updater/data_diff.dart';
 import 'package:dart_triage_updater/issue_utils.dart';
