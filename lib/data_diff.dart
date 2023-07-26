@@ -10,12 +10,15 @@ class DataDiff<S> {
     assert(_changes.values.first.toJsonString() == DiffNode([]).toJsonString());
   }
 
-  S applied([DateTime? atTime]) {
-    final allChanges = _changes.entries
+  S? applied([DateTime? atTime]) {
+    final map = _changes.entries
         .where((entry) => atTime != null ? entry.key.isBefore(atTime) : true)
-        .map((e) => e.value)
-        .fold(DiffNode([]), (node1, node2) => node1 + node2);
-    return fromJson(allChanges.apply(_initial));
+        .map((e) => e.value);
+    if (map.isNotEmpty) {
+      final allChanges = map.reduce((node1, node2) => node1 + node2);
+      return fromJson(allChanges.apply(_initial));
+    }
+    return null;
   }
 
   Map<DateTime, T> getTimeSeries<T>(T Function(S issue) getData) {

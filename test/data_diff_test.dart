@@ -29,7 +29,8 @@ void main() {
     );
   });
   test('Applied up to timepoint', () {
-    expect(dataDiff.applied(DateTime.fromMillisecondsSinceEpoch(7)).upvotes, 2);
+    expect(
+        dataDiff.applied(DateTime.fromMillisecondsSinceEpoch(7))!.upvotes, 2);
   });
 }
 
