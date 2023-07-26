@@ -56,10 +56,16 @@ class DatabaseReference {
     if (response.statusCode != 200) {
       throw Exception('Error getting data from $uri: ${response.body}');
     }
+    final allDataObj = (jsonDecode(response.body) ?? <String, dynamic>{})
+        as Map<String, dynamic>;
+    return extractDataFrom(allDataObj, fromJson);
+  }
+
+  static Map<RepositorySlug, List<T>> extractDataFrom<T>(
+    Map<String, dynamic> allDataObj,
+    T Function(Map<String, dynamic>, Map<DateTime, DiffNode>) fromJson,
+  ) {
     final map = <RepositorySlug, List<T>>{};
-    final allDataObj = jsonDecode(response.body) ??
-        // ignore: unnecessary_cast
-        <String, dynamic>{} as Map<String, dynamic>;
     for (final entry in allDataObj.entries) {
       // ignore: unused_local_variable
       final id = entry.key;
