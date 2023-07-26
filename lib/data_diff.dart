@@ -14,7 +14,7 @@ class DataDiff<S> {
     final allChanges = _changes.entries
         .where((entry) => atTime != null ? entry.key.isBefore(atTime) : true)
         .map((e) => e.value)
-        .reduce((node1, node2) => node1 + node2);
+        .fold(DiffNode([]), (node1, node2) => node1 + node2);
     return fromJson(allChanges.apply(_initial));
   }
 
