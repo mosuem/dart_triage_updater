@@ -23,7 +23,7 @@ class TriageUpdater {
       final issuesByRepo = await DatabaseReference.getData(
         UpdateType.issues,
         (initial, changes) =>
-            DataDiff(initial, changes, Issue.fromJson).applied,
+            DataDiff(initial, changes, Issue.fromJson).applied(),
       );
       await update(
         UpdateType.issues,
@@ -35,7 +35,7 @@ class TriageUpdater {
       final pullrequestsByRepo = await DatabaseReference.getData(
         UpdateType.pullrequests,
         (initial, changes) =>
-            DataDiff(initial, changes, PullRequest.fromJson).applied,
+            DataDiff(initial, changes, PullRequest.fromJson).applied(),
       );
       await update(
         UpdateType.pullrequests,
@@ -120,7 +120,7 @@ class TriageUpdater {
     });
     for (final remainingPr in pullrequests) {
       await DatabaseReference.addChange(
-        UpdateType.issues,
+        UpdateType.pullrequests,
         remainingPr.id.toString(),
         json.encode(remainingPr),
         jsonEncode(remainingPr.close()),

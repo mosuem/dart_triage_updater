@@ -10,8 +10,11 @@ class DataDiff<S> {
     assert(_changes.values.first.toJsonString() == DiffNode([]).toJsonString());
   }
 
-  S get applied {
-    final allChanges = _changes.values.reduce((node1, node2) => node1 + node2);
+  S applied([DateTime? atTime]) {
+    final allChanges = _changes.entries
+        .where((entry) => atTime != null ? entry.key.isBefore(atTime) : true)
+        .map((e) => e.value)
+        .reduce((node1, node2) => node1 + node2);
     return fromJson(allChanges.apply(_initial));
   }
 
