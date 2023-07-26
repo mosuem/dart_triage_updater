@@ -114,16 +114,16 @@ class TriageUpdater {
       await DatabaseReference.addChange(
         UpdateType.pullrequests,
         pullrequest.id.toString(),
-        json.encode(oldPullrequest),
-        jsonEncode(pullrequest),
+        oldPullrequest,
+        pullrequest,
       );
     });
     for (final remainingPr in pullrequests) {
       await DatabaseReference.addChange(
         UpdateType.pullrequests,
         remainingPr.id.toString(),
-        json.encode(remainingPr),
-        jsonEncode(remainingPr.close()),
+        remainingPr,
+        remainingPr.close(),
       );
     }
   }
@@ -139,8 +139,8 @@ class TriageUpdater {
       await DatabaseReference.addChange(
         UpdateType.issues,
         issue.id.toString(),
-        json.encode(oldIssue),
-        jsonEncode(issue),
+        oldIssue,
+        issue,
       );
       if (oldIssue != null) issues.remove(oldIssue);
     });
@@ -148,8 +148,8 @@ class TriageUpdater {
       await DatabaseReference.addChange(
         UpdateType.issues,
         remainingIssue.id.toString(),
-        json.encode(remainingIssue),
-        jsonEncode(remainingIssue.close()),
+        remainingIssue,
+        remainingIssue.close(),
       );
     }
   }

@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:dart_triage_updater/differ.dart';
 import 'package:dart_triage_updater/issue_utils.dart';
+import 'package:github/github.dart';
 import 'package:json_diff/json_diff.dart';
 import 'package:test/test.dart';
 
@@ -60,10 +61,15 @@ void main() {
   });
 
   test('Diff state', () {
-    final oneToTwo = getDiffStr(issue1, issue2);
-    final twoToClosed = getDiffStr(issue1, issue2.close());
+    final oneToTwo = getDiffOfIssues(issue1, issue2);
+    final twoToClosed = getDiffOfIssues(issue1, issue2.close());
     expect(oneToTwo.node['reactions']!.changed.values.first, [0, 2]);
     expect(twoToClosed.changed['state'], ['open', 'closed']);
+  });
+
+  test('Empty diff', () {
+    final emptyDiff = getDiffOfIssues(issue1, issue1);
+    expect(emptyDiff.isEmpty, true);
   });
 }
 
@@ -75,4 +81,5 @@ void checkDiff(Map<String, dynamic> json1, Map<String, dynamic> json2) {
 DiffNode getDiff(Map<String, dynamic> json1, Map<String, dynamic> json2) =>
     JsonDiffer.fromJson(json1, json2).diff();
 
-DiffNode getDiffStr(s, t) => JsonDiffer(jsonEncode(s), jsonEncode(t)).diff();
+DiffNode getDiffOfIssues(Issue s, Issue t) =>
+    JsonDiffer(jsonEncode(s), jsonEncode(t)).diff();

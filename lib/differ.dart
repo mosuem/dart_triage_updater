@@ -6,6 +6,13 @@ import 'package:json_diff/json_diff.dart';
 typedef Json = Map<String, dynamic>;
 
 extension DiffNodeSerialization on DiffNode {
+  bool get isEmpty =>
+      added.isEmpty &&
+      changed.isEmpty &&
+      removed.isEmpty &&
+      moved.isEmpty &&
+      node.isEmpty;
+
   T apply<T>(T child) {
     Object applied;
     if (child is List) {

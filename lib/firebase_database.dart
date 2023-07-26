@@ -57,7 +57,9 @@ class DatabaseReference {
       throw Exception('Error getting data from $uri: ${response.body}');
     }
     final map = <RepositorySlug, List<T>>{};
-    final allDataObj = jsonDecode(response.body) as Map<String, dynamic>;
+    final allDataObj = jsonDecode(response.body) ??
+        // ignore: unnecessary_cast
+        <String, dynamic>{} as Map<String, dynamic>;
     for (final entry in allDataObj.entries) {
       // ignore: unused_local_variable
       final id = entry.key;
@@ -73,7 +75,7 @@ class DatabaseReference {
           .sorted((a, b) => a.key.compareTo(b.key))) {
         final value = entry.value as Map<String, dynamic>;
         if (value.containsKey('initial') && initial == null) {
-          initial = jsonDecode(value['initial']);
+          initial = value['initial'];
           changes[entry.key] = DiffNode([]);
         } else if (value.containsKey('diff')) {
           final value2 = value['diff'];
@@ -82,14 +84,12 @@ class DatabaseReference {
           throw ArgumentError();
         }
       }
-      final repoSlug = getSlugFromUrl(initial!);
+      final repositorySlug = getSlugFromUrl(initial!);
 
       final data = fromJson(initial, changes);
       map.update(
-        RepositorySlug.full(repoSlug),
-        (value) {
-          return [...value, data];
-        },
+        repositorySlug,
+        (value) => [...value, data],
         ifAbsent: () => [data],
       );
     }
@@ -97,31 +97,42 @@ class DatabaseReference {
     return map;
   }
 
-  static String getSlugFromUrl(Map<String, dynamic> json) {
-    final repoUrl = json['repository_url'] as String;
+  static RepositorySlug getSlugFromUrl(Map<String, dynamic> initial) {
+    if (initial['base']?['repo'] != null) {
+      return Repository.fromJson(initial['base']?['repo']).slug();
+    }
+    final repoUrl = initial['repository_url'] as String;
     final split = repoUrl.split(r'/');
-    final repoSlug = split.skip(split.length - 2).join('/');
-    return repoSlug;
+    final repoSlug2 = split.skip(split.length - 2).join('/');
+    final repoSlug = repoSlug2;
+    final repositorySlug = RepositorySlug.full(repoSlug);
+    return repositorySlug;
   }
 
-  static Future<void> addChange(
+  static Future<void> addChange<S>(
     UpdateType type,
     String id,
-    String? oldValue,
-    String newValue,
+    S? oldValue,
+    S newValue,
   ) async {
     final uri = Uri.parse('${firebaseUrl}changes/${type.name}/$id.json');
-    final diff = JsonDiffer(oldValue ?? '{}', newValue).diff();
-    final timestamp = DateTime.now().millisecondsSinceEpoch.toString();
-    final body = jsonEncode({
-      timestamp: {
-        if (oldValue == null) 'initial': newValue,
-        if (oldValue != null) 'diff': diff.toJson(),
+    final nonNullOldValue = oldValue ?? <String, dynamic>{};
+    final diff = JsonDiffer(
+      jsonEncode(nonNullOldValue),
+      jsonEncode(newValue),
+    ).diff();
+    if (!diff.isEmpty) {
+      final timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+      final body = jsonEncode({
+        timestamp: {
+          if (oldValue == null) 'initial': newValue,
+          if (oldValue != null) 'diff': diff.toJson(),
+        }
+      });
+      final response = await http.patch(uri, body: body);
+      if (response.statusCode != 200) {
+        throw Exception('Error adding change ${response.body}');
       }
-    });
-    final response = await http.patch(uri, body: body);
-    if (response.statusCode != 200) {
-      throw Exception('Error adding change ${response.body}');
     }
   }
 }

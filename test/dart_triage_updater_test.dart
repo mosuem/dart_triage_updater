@@ -1,4 +1,3 @@
-import 'dart:convert';
 
 import 'package:dart_triage_updater/firebase_database.dart';
 import 'package:dart_triage_updater/data_diff.dart';
@@ -111,14 +110,13 @@ void main() {
     'Uploads fake data',
     () async {
       final id = issue1.id.toString();
-      final j1 = jsonEncode(issue1);
-      final j2 = jsonEncode(issue2);
-      final j3 = jsonEncode(issue3);
-      final j4 = jsonEncode(issue3.close());
-      await DatabaseReference.addChange(UpdateType.testType, id, null, j1);
-      await DatabaseReference.addChange(UpdateType.testType, id, j1, j2);
-      await DatabaseReference.addChange(UpdateType.testType, id, j2, j3);
-      await DatabaseReference.addChange(UpdateType.testType, id, j3, j4);
+      await DatabaseReference.addChange(UpdateType.testType, id, null, issue1);
+      await DatabaseReference.addChange(
+          UpdateType.testType, id, issue1, issue2);
+      await DatabaseReference.addChange(
+          UpdateType.testType, id, issue2, issue3);
+      await DatabaseReference.addChange(
+          UpdateType.testType, id, issue3, issue3.close());
     },
     skip: 'Just needs to be uploaded once',
   );
