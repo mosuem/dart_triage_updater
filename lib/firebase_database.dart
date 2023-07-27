@@ -13,45 +13,13 @@ class DatabaseReference {
 
   DatabaseReference(this.type, this.slug);
 
-  Future<DateTime> getLastUpdated() async {
+  Future<void> addData(String data, String dataType) async {
     final uri =
-        Uri.parse('$firebaseUrl${type.name}/last_updated/${slug.toUrl()}.json');
-    final response = await http.get(uri);
-    if (response.statusCode == 200) {
-      return DateTime.fromMillisecondsSinceEpoch(
-          int.tryParse(response.body) ?? 0);
-    }
-    return DateTime.fromMillisecondsSinceEpoch(0);
-  }
-
-  Future<void> setLastUpdated(DateTime dateTime) async {
-    final uri = Uri.parse('$firebaseUrl${type.name}/last_updated.json');
-    final body = jsonEncode({slug.toUrl(): dateTime.millisecondsSinceEpoch});
-    final response = await http.patch(
-      uri,
-      body: body,
-    );
-    if (response.statusCode != 200) {
-      throw Exception(
-          'Error setting last_updated for ${slug.fullName} in $type $body: ${response.body}');
-    }
-  }
-
-  Future<void> deleteAllData() async {
-    final uri = Uri.parse('$firebaseUrl${type.name}/data/${slug.toUrl()}.json');
-    final response = await http.delete(uri);
-    if (response.statusCode != 200) {
-      throw Exception(
-          'Error delete data for ${slug.fullName} in $type: ${response.body}');
-    }
-  }
-
-  Future<void> addData(String data) async {
-    final uri = Uri.parse('$firebaseUrl${type.name}/data/${slug.toUrl()}.json');
+        Uri.parse('$firebaseUrl${type.name}/$dataType/${slug.toUrl()}.json');
     final response = await http.patch(uri, body: data);
     if (response.statusCode != 200) {
       throw Exception(
-          'Error delete data for ${slug.fullName} in $type: ${response.body}');
+          'Error adding data $data for ${slug.fullName} in $type: ${response.body}');
     }
   }
 
@@ -62,6 +30,35 @@ class DatabaseReference {
     if (response.statusCode != 200) {
       throw Exception('Error adding Googlers ${response.body}');
     }
+  }
+
+  static setLastUpdated(UpdateType type) async {
+    final uri = Uri.parse('${firebaseUrl}last_updated.json');
+    final response = await http.patch(uri,
+        body: jsonEncode({type.name: DateTime.now().millisecondsSinceEpoch}));
+    if (response.statusCode != 200) {
+      throw Exception('Error adding Googlers ${response.body}');
+    }
+  }
+
+  static Future<DateTime?> getLastUpdated(UpdateType type) async {
+    final uri = Uri.parse('${firebaseUrl}last_updated.json');
+    final response = await http.get(uri);
+    if (response.statusCode != 200) {
+      throw Exception('Error adding Googlers ${response.body}');
+    }
+    return DateTime.fromMillisecondsSinceEpoch(
+        jsonDecode(response.body)[type.name]);
+  }
+
+  Future<List<int>> getIssueNumbers() async {
+    final uri = Uri.parse('$firebaseUrl${type.name}/data/${slug.toUrl()}.json');
+    final response = await http.get(uri);
+    if (response.statusCode != 200) {
+      throw Exception('Error adding Googlers ${response.body}');
+    }
+    final jsonDecode2 = jsonDecode(response.body) as Map;
+    return jsonDecode2.values.map((e) => e['number'] as int).toList();
   }
 }
 

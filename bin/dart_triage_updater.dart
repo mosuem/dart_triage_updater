@@ -36,15 +36,19 @@ Future<void> main(List<String> arguments) async {
         'Invalid arguments "$arguments" passed.\n\n Usage: ${argParser.usage}');
     exit(1);
   }
-  final Authentication authentication;
-  if (apikey == null) {
-    authentication = Authentication.anonymous();
-  } else {
+  var authentication = Authentication.anonymous();
+  if (apikey != null) {
     authentication = Authentication.withToken(apikey);
+  } else {
+    final file = File('.env');
+    if (file.existsSync()) {
+      final token = file.readAsStringSync();
+      authentication = Authentication.withToken(token);
+    }
   }
   final github = GitHub(auth: authentication);
   final updateTypes = toUpdate
       .map((e) => UpdateType.values.firstWhere((type) => type.name == e))
       .toList();
-  await updateThese(updateTypes, github);
+  await TriageUpdater(github).updateThese(updateTypes);
 }

@@ -6,28 +6,34 @@ import 'package:github/github.dart';
 import 'package:test/test.dart';
 
 void main() {
-  final dateTime = DateTime(2010, 12, 24);
   final name = 'test_package';
   final databaseReference =
       DatabaseReference(UpdateType.testType, RepositorySlug('dart-lang', name));
-  test('getLastUpdated + setLastUpdated', () async {
-    await databaseReference.setLastUpdated(dateTime);
-    await Future.delayed(Duration(seconds: 1));
-    final lastUpdated = await databaseReference.getLastUpdated();
-    expect(
-      lastUpdated.millisecondsSinceEpoch,
-      dateTime.millisecondsSinceEpoch,
-    );
-  });
   test('addData', () async {
     await databaseReference.addData(
       jsonEncode({
-        1234.toString(): jsonEncode({'prName': 'Name of PR'})
+        1234.toString(): {'prName': 'Name of PR'}
       }),
+      'data',
     );
-    await databaseReference.deleteAllData();
   });
   test('addGooglers', () async {
     await DatabaseReference.saveGooglers(jsonEncode(['test1', 'test2']));
+  });
+  test('set and get last updated', () async {
+    await DatabaseReference.setLastUpdated(UpdateType.testType);
+    final dateTime =
+        await DatabaseReference.getLastUpdated(UpdateType.testType);
+    expect(
+      dateTime!.millisecondsSinceEpoch,
+      closeTo(DateTime.now().millisecondsSinceEpoch,
+          Duration(seconds: 1).inMilliseconds),
+    );
+  });
+  test('Get numbers', () async {
+    final numbers = await DatabaseReference(
+            UpdateType.issues, RepositorySlug('dart-lang', 'api.dart.dev'))
+        .getIssueNumbers();
+    expect(numbers, isNotEmpty);
   });
 }

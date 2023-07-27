@@ -25,12 +25,11 @@ extension ReviewerAddition on PullRequest {
   bool get authorIsCopybara => user?.login == 'copybara-service[bot]';
 }
 
-String encodePR(PullRequest pr) {
-  final jsonEncode2 = jsonEncode({
+Map<String, dynamic> encodePR(PullRequest pr) {
+  return {
     'pr': pr,
     'reviewers': pr.reviewers,
-  });
-  return jsonEncode2;
+  };
 }
 
 PullRequest decodePR(String json) {
