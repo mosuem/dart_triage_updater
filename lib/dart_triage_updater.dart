@@ -22,9 +22,6 @@ class TriageUpdater {
     if (updateTypes.contains(UpdateType.issues)) {
       await update(saveIssues);
     }
-    if (updateTypes.contains(UpdateType.pullrequests)) {
-      await update(savePullRequests);
-    }
     if (updateTypes.contains(UpdateType.googlers)) {
       await updateGooglers(github);
     }
@@ -67,37 +64,13 @@ class TriageUpdater {
         updater.add(
             'Get data for ${slug.fullName} with ${github.rateLimitRemaining} '
             'remaining requests, repo $i/${repos.length}');
-        await saveToDatabase(slug);
+        await saveIssues(slug);
       } catch (e) {
         updater.add(e.toString());
       }
     }
 
     updater.close();
-  }
-
-  Future<void> savePullRequests(RepositorySlug slug) async {
-    final ref = DatabaseReference(UpdateType.pullrequests);
-    final pullrequests =
-        await github.pullRequests.list(slug, pages: 1000).toList();
-    await wait();
-    for (final pr in pullrequests) {
-      updater.add('\tHandle  PR ${pr.number!} from ${slug.fullName}');
-      final list = await getReviewers(slug, pr);
-      pr.reviewers = list;
-      try {
-        final timeline =
-            await github.issues.listTimeline(slug, pr.number!).toList();
-        await wait();
-        updater.add(
-            '\tHandle timeline of PR ${pr.number!} from ${slug.fullName} with length ${timeline.length}');
-        await ref.addData(
-            jsonEncode({pr.id!.toString(): timeline}), 'timeline');
-      } catch (e) {
-        updater.add('Error when getting timeline');
-      }
-      await ref.addData(jsonEncode({pr.id!.toString(): encodePR(pr)}), 'data');
-    }
   }
 
   Future<List<User>> getReviewers(RepositorySlug slug, PullRequest pr) async {
@@ -114,7 +87,6 @@ class TriageUpdater {
   }
 
   Future<void> saveIssues(RepositorySlug slug) async {
-    final ref = DatabaseReference(UpdateType.issues);
     final issues = await github.issues
         .listByRepo(
           slug,
@@ -125,21 +97,50 @@ class TriageUpdater {
         .toList();
     await wait();
     for (final issue in issues) {
-      if (issue.pullRequest == null) {
-        try {
-          final timeline =
-              await github.issues.listTimeline(slug, issue.number).toList();
-          await wait();
-          updater.add(
-              '\tHandle timeline of issue ${issue.number} from ${slug.fullName} with length ${timeline.length}');
-          await ref.addData(
-              jsonEncode({issue.id.toString(): timeline}), 'timeline');
-        } catch (e) {
-          updater.add('Error when getting timeline');
-        }
-        await ref.addData(jsonEncode({issue.id.toString(): issue}), 'data');
+      final issuePR = issue.pullRequest;
+      if (issuePR == null) {
+        await saveIssue(slug, issue);
+      } else {
+        final prNumberStr = issuePR.htmlUrl!.split('/').last;
+        final prNumber = int.parse(prNumberStr);
+        final pullRequest = await github.pullRequests.get(slug, prNumber);
+        await savePullRequest(slug, pullRequest);
       }
     }
+  }
+
+  Future<void> saveIssue(RepositorySlug slug, Issue issue) async {
+    final ref = DatabaseReference(UpdateType.issues);
+    try {
+      final timeline =
+          await github.issues.listTimeline(slug, issue.number).toList();
+      await wait();
+      updater.add(
+          '\tHandle timeline of issue ${issue.number} from ${slug.fullName} with length ${timeline.length}');
+      await ref.addData(
+          jsonEncode({issue.id.toString(): timeline}), 'timeline');
+    } catch (e) {
+      updater.add('\tError when getting timeline');
+    }
+    await ref.addData(jsonEncode({issue.id.toString(): issue}), 'data');
+  }
+
+  Future<void> savePullRequest(RepositorySlug slug, PullRequest pr) async {
+    final ref = DatabaseReference(UpdateType.pullrequests);
+    updater.add('\tHandle  PR ${pr.number!} from ${slug.fullName}');
+    try {
+      final timeline =
+          await github.issues.listTimeline(slug, pr.number!).toList();
+      await wait();
+      updater.add(
+          '\tHandle timeline of PR ${pr.number!} from ${slug.fullName} with length ${timeline.length}');
+      await ref.addData(jsonEncode({pr.id!.toString(): timeline}), 'timeline');
+    } catch (e) {
+      updater.add('\tError when getting timeline');
+    }
+    final list = await getReviewers(slug, pr);
+    pr.reviewers = list;
+    await ref.addData(jsonEncode({pr.id!.toString(): encodePR(pr)}), 'data');
   }
 
   Future<void> wait() async =>
