@@ -8,18 +8,21 @@ import 'package:test/test.dart';
 
 void main() {
   final ref = DatabaseReference(UpdateType.testType);
-  test('addData', () async {
-    final issue = Issue(
-      id: 1234,
-      createdAt: DateTime.now(),
-    );
-    final issue2 = Issue(
-      id: 2345,
-      createdAt: DateTime.now(),
-    );
-    await ref.addData(jsonEncode({issue.id.toString(): issue}), 'data');
-    await ref.addData(jsonEncode({issue2.id.toString(): issue2}), 'data');
-  });
+  test(
+    'addData',
+    () async {
+      final issue = Issue(
+        id: 1234,
+        createdAt: DateTime.now(),
+      );
+      final issue2 = Issue(
+        id: 2345,
+        createdAt: DateTime.now(),
+      );
+      await ref.addData(jsonEncode({issue.id.toString(): issue}), 'data');
+      await ref.addData(jsonEncode({issue2.id.toString(): issue2}), 'data');
+    },
+  );
   test(
     'addGooglers',
     () async {
@@ -29,11 +32,11 @@ void main() {
     skip: true,
   );
   test('set and get last updated', () async {
-    await DatabaseReference(UpdateType.testType).setLastUpdated();
-    final dateTime =
-        await DatabaseReference(UpdateType.testType).getLastUpdated();
+    final repositorySlug = RepositorySlug('testowner', 'testname');
+    await DatabaseReference.setLastUpdated(repositorySlug);
+    final dateTime = await DatabaseReference.getLastUpdated();
     expect(
-      dateTime!.millisecondsSinceEpoch,
+      dateTime[repositorySlug]!.millisecondsSinceEpoch,
       closeTo(DateTime.now().millisecondsSinceEpoch,
           Duration(seconds: 1).inMilliseconds),
     );

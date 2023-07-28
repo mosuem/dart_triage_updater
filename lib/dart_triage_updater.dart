@@ -10,24 +10,19 @@ import 'update_type.dart';
 
 class TriageUpdater {
   final GitHub github;
-  late Map<UpdateType, DateTime?> lastUpdated;
+  late Map<RepositorySlug, DateTime?> lastUpdated;
   final updater = (StreamController<String>()..stream.listen(print)).sink;
 
   TriageUpdater(this.github);
 
   Future<void> updateThese(List<UpdateType> updateTypes) async {
-    lastUpdated = Map.fromEntries(await Future.wait(updateTypes.map((e) async =>
-        MapEntry(e, await DatabaseReference(e).getLastUpdated()))));
+    lastUpdated = await DatabaseReference.getLastUpdated();
 
     if (updateTypes.contains(UpdateType.issues)) {
-      await update(saveIssues);
+      await update();
     }
     if (updateTypes.contains(UpdateType.googlers)) {
       await updateGooglers(github);
-    }
-
-    for (final type in updateTypes) {
-      await DatabaseReference(type).setLastUpdated();
     }
   }
 
@@ -46,9 +41,7 @@ class TriageUpdater {
     updater.close();
   }
 
-  Future<void> update(
-    Future<void> Function(RepositorySlug) saveToDatabase,
-  ) async {
+  Future<void> update() async {
     final repositories =
         github.repositories.listOrganizationRepositories('dart-lang');
     final dartLangRepos = await repositories
@@ -65,6 +58,7 @@ class TriageUpdater {
             'Get data for ${slug.fullName} with ${github.rateLimitRemaining} '
             'remaining requests, repo $i/${repos.length}');
         await saveIssues(slug);
+        await DatabaseReference.setLastUpdated(slug);
       } catch (e) {
         updater.add(e.toString());
       }
@@ -92,7 +86,7 @@ class TriageUpdater {
           slug,
           perPage: 5000,
           state: 'all',
-          since: lastUpdated[UpdateType.issues],
+          since: lastUpdated[slug],
         )
         .toList();
     await wait();

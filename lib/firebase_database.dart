@@ -29,23 +29,26 @@ class DatabaseReference {
     }
   }
 
-  Future<void> setLastUpdated() async {
+  static Future<void> setLastUpdated(RepositorySlug slug) async {
     final uri = Uri.parse('${firebaseUrl}last_updated.json');
     final response = await http.patch(uri,
-        body: jsonEncode({type.name: DateTime.now().millisecondsSinceEpoch}));
+        body:
+            jsonEncode({slug.toUrl(): DateTime.now().millisecondsSinceEpoch}));
     if (response.statusCode != 200) {
       throw Exception('Error adding Googlers ${response.body}');
     }
   }
 
-  Future<DateTime?> getLastUpdated() async {
+  static Future<Map<RepositorySlug, DateTime?>> getLastUpdated() async {
     final uri = Uri.parse('${firebaseUrl}last_updated.json');
     final response = await http.get(uri);
     if (response.statusCode != 200) {
       throw Exception('Error adding Googlers ${response.body}');
     }
-    return DateTime.fromMillisecondsSinceEpoch(
-        (jsonDecode(response.body) ?? {})[type.name] ?? 0);
+    final map = (jsonDecode(response.body) ?? {}) as Map<String, dynamic>;
+    return map.map((key, value) => MapEntry(
+        RepositorySlugExtension.fromUrl(key),
+        DateTime.fromMillisecondsSinceEpoch(value)));
   }
 
   static List<T> extractDataFrom<T>(
