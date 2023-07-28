@@ -23,7 +23,7 @@ class DatabaseReference {
     }
   }
 
-  static Future<void> saveGooglers(String googlers) async {
+  static Future<void> saveGooglers(List googlers) async {
     final uri = Uri.parse('$firebaseUrl.json');
     final response =
         await http.patch(uri, body: jsonEncode({'googlers': googlers}));
@@ -51,21 +51,41 @@ class DatabaseReference {
         jsonDecode(response.body)[type.name]);
   }
 
-  Future<List<int>> getIssueNumbers() async {
-    final uri = Uri.parse('$firebaseUrl${type.name}/data/${slug.toUrl()}.json');
-    final response = await http.get(uri);
-    if (response.statusCode != 200) {
-      throw Exception('Error adding Googlers ${response.body}');
+  static Map<RepositorySlug, List<T>> extractDataFrom<T>(
+    Map<String, dynamic> reposToIds,
+    T Function(Map<String, dynamic> json) fromJson,
+  ) {
+    final map = <RepositorySlug, List<T>>{};
+    for (final repoToIds in reposToIds.entries) {
+      final slug = RepositorySlugExtension.fromUrl(repoToIds.key);
+      final idsToData = repoToIds.value as Map<String, dynamic>;
+
+      final list = <T>[];
+      for (final idToData in idsToData.entries) {
+        // ignore: unused_local_variable
+        final id = idToData.key;
+        final data = fromJson(idToData.value);
+        list.add(data);
+      }
+
+      map[slug] = list;
     }
-    final jsonDecode2 = jsonDecode(response.body) as Map;
-    return jsonDecode2.values.map((e) => e['number'] as int).toList();
+    return map;
   }
 }
 
-extension on RepositorySlug {
+extension RepositorySlugExtension on RepositorySlug {
   String toUrl() {
     final ownerClean = owner.replaceAll(r'.', r',');
     final nameClean = name.replaceAll(r'.', r',');
     return '$ownerClean:$nameClean';
+  }
+
+  static RepositorySlug fromUrl(String url) {
+    final split = url.split(':');
+    final owner = split[0];
+    final name = split[1];
+    return RepositorySlug(
+        owner.replaceAll(r',', r'.'), name.replaceAll(r',', r'.'));
   }
 }

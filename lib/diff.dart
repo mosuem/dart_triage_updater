@@ -1,19 +1,19 @@
 import 'package:collection/collection.dart';
 import 'package:github/github.dart';
 
-class Diff {
+class Diff<T> {
+  final T object;
   final List<TimelineEvent> events;
   final DateTime createdAt;
 
-  Diff._(List<TimelineEvent> events, this.createdAt)
+  Diff._(this.object, List<TimelineEvent> events, this.createdAt)
       : events = events.sortedBy((event) =>
             event.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0));
 
-  Diff.fromIssue(Issue issue, List<TimelineEvent> events)
-      : this._(events, issue.createdAt!);
-
-  Diff.fromPullRequest(PullRequest pr, List<TimelineEvent> events)
-      : this._(events, pr.createdAt!);
+  static fromIssue(Issue issue, List<TimelineEvent> events) =>
+      Diff._(issue, events, issue.createdAt!);
+  static fromPullRequest(PullRequest pr, List<TimelineEvent> events) =>
+      Diff._(pr, events, pr.createdAt!);
 
   /// LABELING
   Iterable<LabelEvent> get _labelEvents => events.whereType<LabelEvent>();

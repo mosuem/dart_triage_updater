@@ -44,8 +44,7 @@ class TriageUpdater {
     updater.add('Fetched ${googlersDart.length} googlers from "dart-lang"');
     final googlers = (googlersGoogle + googlersDart).toSet().toList();
     updater.add('Store googlers in database');
-    final jsonEncode2 = jsonEncode(googlers);
-    await DatabaseReference.saveGooglers(jsonEncode2);
+    await DatabaseReference.saveGooglers(googlers);
     updater.add('Done!');
     updater.close();
   }
@@ -59,12 +58,15 @@ class TriageUpdater {
         .where((repository) => !repository.archived)
         .map((repository) => repository.slug())
         .where((slug) => !exludeRepos.contains(slug))
-        .toList();
-    for (final slug in [...dartLangRepos, ...includeRepos]) {
+        .toList()
+      ..shuffle();
+    final repos = [...dartLangRepos, ...includeRepos];
+    for (var i = 0; i < repos.length; i++) {
+      final slug = repos[i];
       try {
         updater.add(
             'Get data for ${slug.fullName} with ${github.rateLimitRemaining} '
-            'remaining requests');
+            'remaining requests, repo $i/${repos.length}');
         await saveToDatabase(slug);
       } catch (e) {
         updater.add(e.toString());
@@ -75,7 +77,7 @@ class TriageUpdater {
   }
 
   Future<void> savePullRequests(RepositorySlug slug) async {
-    final ref = DatabaseReference(UpdateType.issues, slug);
+    final ref = DatabaseReference(UpdateType.pullrequests, slug);
     final pullrequests =
         await github.pullRequests.list(ref.slug, pages: 1000).toList();
     await wait();
@@ -122,8 +124,6 @@ class TriageUpdater {
         )
         .toList();
     await wait();
-    // Shuffle issues to update all of them eventually, even with rate limiting
-    issues.shuffle();
     for (final issue in issues) {
       if (issue.pullRequest == null) {
         try {
@@ -143,5 +143,5 @@ class TriageUpdater {
   }
 
   Future<void> wait() async =>
-      await Future.delayed(Duration(milliseconds: 200));
+      await Future.delayed(Duration(milliseconds: 400));
 }
