@@ -103,8 +103,9 @@ class TriageUpdater {
     }
   }
 
-  Future<void> saveIssue(RepositorySlug slug, Issue issue) async {
-    final ref = DatabaseReference(UpdateType.issues);
+  Future<void> saveIssue(RepositorySlug slug, Issue issue,
+      [UpdateType type = UpdateType.issues]) async {
+    final ref = DatabaseReference(type);
     try {
       final timeline =
           await github.issues.listTimeline(slug, issue.number).toList();
@@ -119,8 +120,9 @@ class TriageUpdater {
     await ref.addData(jsonEncode({issue.id.toString(): issue}), 'data');
   }
 
-  Future<void> savePullRequest(RepositorySlug slug, PullRequest pr) async {
-    final ref = DatabaseReference(UpdateType.pullrequests);
+  Future<void> savePullRequest(RepositorySlug slug, PullRequest pr,
+      [UpdateType type = UpdateType.pullrequests]) async {
+    final ref = DatabaseReference(type);
     updater.add('\tHandle  PR ${pr.number!} from ${slug.fullName}');
     try {
       final timeline =

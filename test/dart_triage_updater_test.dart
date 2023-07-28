@@ -1,6 +1,8 @@
 import 'dart:convert';
 
+import 'package:dart_triage_updater/dart_triage_updater.dart';
 import 'package:dart_triage_updater/firebase_database.dart';
+import 'package:dart_triage_updater/github.dart';
 import 'package:dart_triage_updater/update_type.dart';
 import 'package:github/github.dart';
 import 'package:http/http.dart' as http;
@@ -22,6 +24,7 @@ void main() {
       await ref.addData(jsonEncode({issue.id.toString(): issue}), 'data');
       await ref.addData(jsonEncode({issue2.id.toString(): issue2}), 'data');
     },
+    skip: true,
   );
   test(
     'addGooglers',
@@ -41,6 +44,31 @@ void main() {
           Duration(seconds: 1).inMilliseconds),
     );
   });
+
+  test(
+    'save PR',
+    () async {
+      final repositorySlug = RepositorySlug('mosuem', 'dart_triage_updater');
+      final pullRequest = PullRequest(
+        id: 99999,
+        number: 3,
+      );
+      await TriageUpdater(getGithub())
+          .savePullRequest(repositorySlug, pullRequest, UpdateType.testType);
+    },
+    skip: true,
+  );
+
+  test(
+    'save issues',
+    () async {
+      final repositorySlug = RepositorySlug('mosuem', 'dart_pr_dashboard');
+      final issue = Issue(id: 8888, number: 22);
+      await TriageUpdater(getGithub())
+          .saveIssue(repositorySlug, issue, UpdateType.testType);
+    },
+    skip: true,
+  );
 
   test(
     'Decode data',

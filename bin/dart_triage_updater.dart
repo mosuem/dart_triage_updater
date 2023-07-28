@@ -3,8 +3,8 @@ import 'dart:io';
 
 import 'package:args/args.dart';
 import 'package:dart_triage_updater/dart_triage_updater.dart';
+import 'package:dart_triage_updater/github.dart';
 import 'package:dart_triage_updater/update_type.dart';
-import 'package:github/github.dart';
 
 Future<void> main(List<String> arguments) async {
   final argParser = ArgParser()
@@ -36,17 +36,7 @@ Future<void> main(List<String> arguments) async {
         'Invalid arguments "$arguments" passed.\n\n Usage: ${argParser.usage}');
     exit(1);
   }
-  var authentication = Authentication.anonymous();
-  if (apikey != null) {
-    authentication = Authentication.withToken(apikey);
-  } else {
-    final file = File('.env');
-    if (file.existsSync()) {
-      final token = file.readAsStringSync();
-      authentication = Authentication.withToken(token);
-    }
-  }
-  final github = GitHub(auth: authentication);
+  final github = getGithub(apikey);
   final updateTypes = toUpdate
       .map((e) => UpdateType.values.firstWhere((type) => type.name == e))
       .toList();
