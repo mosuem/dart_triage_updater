@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:dart_triage_updater/firebase_database.dart';
-import 'package:dart_triage_updater/pull_request_utils.dart';
 import 'package:dart_triage_updater/update_type.dart';
 import 'package:github/github.dart';
 import 'package:http/http.dart' as http;
