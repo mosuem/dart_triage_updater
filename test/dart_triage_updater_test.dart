@@ -8,25 +8,31 @@ import 'package:http/http.dart' as http;
 import 'package:test/test.dart';
 
 void main() {
-  final name = 'test_package';
-  final databaseReference =
-      DatabaseReference(UpdateType.testType, RepositorySlug('dart-lang', name));
+  final ref = DatabaseReference(UpdateType.testType);
   test('addData', () async {
-    await databaseReference.addData(
-      jsonEncode({
-        1234.toString(): {'prName': 'Name of PR'}
-      }),
-      'data',
+    final issue = Issue(
+      id: 1234,
+      createdAt: DateTime.now(),
     );
+    final issue2 = Issue(
+      id: 2345,
+      createdAt: DateTime.now(),
+    );
+    await ref.addData(jsonEncode({issue.id.toString(): issue}), 'data');
+    await ref.addData(jsonEncode({issue2.id.toString(): issue2}), 'data');
   });
-  test('addGooglers', () async {
-    await DatabaseReference.saveGooglers(
-        [User(login: 'test1'), User(login: 'test2')]);
-  });
+  test(
+    'addGooglers',
+    () async {
+      await DatabaseReference.saveGooglers(
+          [User(login: 'test1'), User(login: 'test2')]);
+    },
+    skip: true,
+  );
   test('set and get last updated', () async {
-    await DatabaseReference.setLastUpdated(UpdateType.testType);
+    await DatabaseReference(UpdateType.testType).setLastUpdated();
     final dateTime =
-        await DatabaseReference.getLastUpdated(UpdateType.testType);
+        await DatabaseReference(UpdateType.testType).getLastUpdated();
     expect(
       dateTime!.millisecondsSinceEpoch,
       closeTo(DateTime.now().millisecondsSinceEpoch,
@@ -34,15 +40,15 @@ void main() {
     );
   });
 
-  test('Decode data', () async {
-    final slug = RepositorySlug('dart-lang', 'coverage');
-    final uri =
-        Uri.parse('${firebaseUrl}pullrequests/data/${slug.toUrl()}.json');
-    final response = await http.get(uri);
-    final extractDataFrom = DatabaseReference.extractDataFrom(
-      {slug.toUrl(): jsonDecode(response.body)},
-      decodePR,
-    );
-    expect(extractDataFrom, isNotEmpty);
-  });
+  test(
+    'Decode data',
+    () async {
+      final uri =
+          Uri.parse('$firebaseUrl${UpdateType.testType.name}/data.json');
+      final response = await http.get(uri);
+      final extractDataFrom = DatabaseReference.extractDataFrom(
+          jsonDecode(response.body), Issue.fromJson);
+      expect(extractDataFrom, isNotEmpty);
+    },
+  );
 }

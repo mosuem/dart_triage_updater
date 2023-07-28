@@ -16,8 +16,8 @@ class TriageUpdater {
   TriageUpdater(this.github);
 
   Future<void> updateThese(List<UpdateType> updateTypes) async {
-    lastUpdated = Map.fromEntries(await Future.wait(updateTypes.map(
-        (e) async => MapEntry(e, await DatabaseReference.setLastUpdated(e)))));
+    lastUpdated = Map.fromEntries(await Future.wait(updateTypes.map((e) async =>
+        MapEntry(e, await DatabaseReference(e).getLastUpdated()))));
 
     if (updateTypes.contains(UpdateType.issues)) {
       await update(saveIssues);
@@ -30,7 +30,7 @@ class TriageUpdater {
     }
 
     for (final type in updateTypes) {
-      await DatabaseReference.setLastUpdated(type);
+      await DatabaseReference(type).setLastUpdated();
     }
   }
 
@@ -77,20 +77,20 @@ class TriageUpdater {
   }
 
   Future<void> savePullRequests(RepositorySlug slug) async {
-    final ref = DatabaseReference(UpdateType.pullrequests, slug);
+    final ref = DatabaseReference(UpdateType.pullrequests);
     final pullrequests =
-        await github.pullRequests.list(ref.slug, pages: 1000).toList();
+        await github.pullRequests.list(slug, pages: 1000).toList();
     await wait();
     for (final pr in pullrequests) {
-      updater.add('\tHandle  PR ${pr.number!} from ${ref.slug.fullName}');
-      final list = await getReviewers(ref.slug, pr);
+      updater.add('\tHandle  PR ${pr.number!} from ${slug.fullName}');
+      final list = await getReviewers(slug, pr);
       pr.reviewers = list;
       try {
         final timeline =
-            await github.issues.listTimeline(ref.slug, pr.number!).toList();
+            await github.issues.listTimeline(slug, pr.number!).toList();
         await wait();
         updater.add(
-            '\tHandle timeline of PR ${pr.number!} from ${ref.slug.fullName} with length ${timeline.length}');
+            '\tHandle timeline of PR ${pr.number!} from ${slug.fullName} with length ${timeline.length}');
         await ref.addData(
             jsonEncode({pr.id!.toString(): timeline}), 'timeline');
       } catch (e) {
@@ -114,10 +114,10 @@ class TriageUpdater {
   }
 
   Future<void> saveIssues(RepositorySlug slug) async {
-    final ref = DatabaseReference(UpdateType.issues, slug);
+    final ref = DatabaseReference(UpdateType.issues);
     final issues = await github.issues
         .listByRepo(
-          ref.slug,
+          slug,
           perPage: 5000,
           state: 'all',
           since: lastUpdated[UpdateType.issues],
@@ -128,10 +128,10 @@ class TriageUpdater {
       if (issue.pullRequest == null) {
         try {
           final timeline =
-              await github.issues.listTimeline(ref.slug, issue.number).toList();
+              await github.issues.listTimeline(slug, issue.number).toList();
           await wait();
           updater.add(
-              '\tHandle timeline of issue ${issue.number} from ${ref.slug.fullName} with length ${timeline.length}');
+              '\tHandle timeline of issue ${issue.number} from ${slug.fullName} with length ${timeline.length}');
           await ref.addData(
               jsonEncode({issue.id.toString(): timeline}), 'timeline');
         } catch (e) {

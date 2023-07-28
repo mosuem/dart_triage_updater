@@ -9,17 +9,14 @@ final firebaseUrl =
 
 class DatabaseReference {
   final UpdateType type;
-  final RepositorySlug slug;
 
-  DatabaseReference(this.type, this.slug);
+  DatabaseReference(this.type);
 
   Future<void> addData(String data, String dataType) async {
-    final uri =
-        Uri.parse('$firebaseUrl${type.name}/$dataType/${slug.toUrl()}.json');
+    final uri = Uri.parse('$firebaseUrl${type.name}/$dataType.json');
     final response = await http.patch(uri, body: data);
     if (response.statusCode != 200) {
-      throw Exception(
-          'Error adding data $data for ${slug.fullName} in $type: ${response.body}');
+      throw Exception('Error adding data $data in $type: ${response.body}');
     }
   }
 
@@ -32,7 +29,7 @@ class DatabaseReference {
     }
   }
 
-  static setLastUpdated(UpdateType type) async {
+  Future<void> setLastUpdated() async {
     final uri = Uri.parse('${firebaseUrl}last_updated.json');
     final response = await http.patch(uri,
         body: jsonEncode({type.name: DateTime.now().millisecondsSinceEpoch}));
@@ -41,36 +38,28 @@ class DatabaseReference {
     }
   }
 
-  static Future<DateTime?> getLastUpdated(UpdateType type) async {
+  Future<DateTime?> getLastUpdated() async {
     final uri = Uri.parse('${firebaseUrl}last_updated.json');
     final response = await http.get(uri);
     if (response.statusCode != 200) {
       throw Exception('Error adding Googlers ${response.body}');
     }
     return DateTime.fromMillisecondsSinceEpoch(
-        jsonDecode(response.body)[type.name]);
+        (jsonDecode(response.body) ?? {})[type.name] ?? 0);
   }
 
-  static Map<RepositorySlug, List<T>> extractDataFrom<T>(
-    Map<String, dynamic> reposToIds,
+  static List<T> extractDataFrom<T>(
+    Map<String, dynamic> idsToData,
     T Function(Map<String, dynamic> json) fromJson,
   ) {
-    final map = <RepositorySlug, List<T>>{};
-    for (final repoToIds in reposToIds.entries) {
-      final slug = RepositorySlugExtension.fromUrl(repoToIds.key);
-      final idsToData = repoToIds.value as Map<String, dynamic>;
-
-      final list = <T>[];
-      for (final idToData in idsToData.entries) {
-        // ignore: unused_local_variable
-        final id = idToData.key;
-        final data = fromJson(idToData.value);
-        list.add(data);
-      }
-
-      map[slug] = list;
+    final list = <T>[];
+    for (final idToData in idsToData.entries) {
+      // ignore: unused_local_variable
+      final id = idToData.key;
+      final data = fromJson(idToData.value);
+      list.add(data);
     }
-    return map;
+    return list;
   }
 }
 
