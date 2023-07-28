@@ -10,14 +10,11 @@ import 'update_type.dart';
 
 class TriageUpdater {
   final GitHub github;
-  late Map<RepositorySlug, DateTime?> lastUpdated;
   final updater = (StreamController<String>()..stream.listen(print)).sink;
 
   TriageUpdater(this.github);
 
   Future<void> updateThese(List<UpdateType> updateTypes) async {
-    lastUpdated = await DatabaseReference.getLastUpdated();
-
     if (updateTypes.contains(UpdateType.issues)) {
       await update();
     }
@@ -42,6 +39,7 @@ class TriageUpdater {
   }
 
   Future<void> update() async {
+    final lastUpdated = await DatabaseReference.getLastUpdated();
     final repositories =
         github.repositories.listOrganizationRepositories('dart-lang');
     final dartLangRepos = await repositories
@@ -57,7 +55,7 @@ class TriageUpdater {
         updater.add(
             'Get data for ${slug.fullName} with ${github.rateLimitRemaining} '
             'remaining requests, repo $i/${repos.length}');
-        await saveIssues(slug);
+        await saveIssues(slug, lastUpdated);
         await DatabaseReference.setLastUpdated(slug);
       } catch (e) {
         updater.add(e.toString());
@@ -80,7 +78,8 @@ class TriageUpdater {
     return reviewers;
   }
 
-  Future<void> saveIssues(RepositorySlug slug) async {
+  Future<void> saveIssues(
+      RepositorySlug slug, Map<RepositorySlug, DateTime?> lastUpdated) async {
     final issues = await github.issues
         .listByRepo(
           slug,

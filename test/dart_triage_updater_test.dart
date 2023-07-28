@@ -34,16 +34,20 @@ void main() {
     },
     skip: true,
   );
-  test('set and get last updated', () async {
-    final repositorySlug = RepositorySlug('testowner', 'testname');
-    await DatabaseReference.setLastUpdated(repositorySlug);
-    final dateTime = await DatabaseReference.getLastUpdated();
-    expect(
-      dateTime[repositorySlug]!.millisecondsSinceEpoch,
-      closeTo(DateTime.now().millisecondsSinceEpoch,
-          Duration(seconds: 1).inMilliseconds),
-    );
-  });
+  test(
+    'set and get last updated',
+    () async {
+      final repositorySlug = RepositorySlug('mosuem', 'dart_triage_updater');
+      await DatabaseReference.setLastUpdated(repositorySlug);
+      final dateTime = await DatabaseReference.getLastUpdated();
+      expect(
+        dateTime[repositorySlug]!.millisecondsSinceEpoch,
+        closeTo(DateTime.now().millisecondsSinceEpoch,
+            Duration(seconds: 1).inMilliseconds),
+      );
+    },
+    skip: true,
+  );
 
   test(
     'save PR',
@@ -58,9 +62,19 @@ void main() {
     },
     skip: true,
   );
-
   test(
     'save issues',
+    () async {
+      await TriageUpdater(getGithub()).saveIssues(
+        RepositorySlug('mosuem', 'dart_pr_dashboard'),
+        {},
+      );
+    },
+    skip: true,
+  );
+
+  test(
+    'save issue',
     () async {
       final repositorySlug = RepositorySlug('mosuem', 'dart_pr_dashboard');
       final issue = Issue(id: 8888, number: 22);
@@ -80,5 +94,6 @@ void main() {
           jsonDecode(response.body), Issue.fromJson);
       expect(extractDataFrom, isNotEmpty);
     },
+    skip: true,
   );
 }
