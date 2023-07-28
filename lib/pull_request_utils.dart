@@ -32,9 +32,9 @@ Map<String, dynamic> encodePR(PullRequest pr) {
 
 PullRequest decodePR(Map<String, dynamic> decoded) {
   final decodedPR = decoded['pr'] as Map<String, dynamic>;
-  final decodedReviewers = decoded['reviewers'] as List;
+  final decodedReviewers = decoded['reviewers'] as List?;
   final pr = PullRequest.fromJson(decodedPR);
-  pr.reviewers = decodedReviewers.map((e) => User.fromJson(e)).toList();
+  pr.reviewers = decodedReviewers?.map((e) => User.fromJson(e)).toList() ?? [];
   pr.requestedReviewers?.removeWhere((requestedReviewer) => pr.reviewers
       .any((reviewer) => reviewer.login == requestedReviewer.login));
   return pr;
