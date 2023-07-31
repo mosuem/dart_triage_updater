@@ -10,7 +10,8 @@ import 'update_type.dart';
 
 class TriageUpdater {
   final GitHub github;
-  final updater = (StreamController<String>()..stream.listen(print)).sink;
+  final StreamSink<String> updater =
+      (StreamController<String>()..stream.listen(print)).sink;
 
   TriageUpdater(this.github);
 
