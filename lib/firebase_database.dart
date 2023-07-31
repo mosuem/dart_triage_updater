@@ -9,53 +9,18 @@ final firebaseUrl =
 
 class DatabaseReference {
   final UpdateType type;
-  final RepositorySlug slug;
 
-  DatabaseReference(this.type, this.slug);
+  DatabaseReference(this.type);
 
-  Future<DateTime> getLastUpdated() async {
-    final uri =
-        Uri.parse('$firebaseUrl${type.name}/last_updated/${slug.toUrl()}.json');
-    final response = await http.get(uri);
-    if (response.statusCode == 200) {
-      return DateTime.fromMillisecondsSinceEpoch(
-          int.tryParse(response.body) ?? 0);
-    }
-    return DateTime.fromMillisecondsSinceEpoch(0);
-  }
-
-  Future<void> setLastUpdated(DateTime dateTime) async {
-    final uri = Uri.parse('$firebaseUrl${type.name}/last_updated.json');
-    final body = jsonEncode({slug.toUrl(): dateTime.millisecondsSinceEpoch});
-    final response = await http.patch(
-      uri,
-      body: body,
-    );
-    if (response.statusCode != 200) {
-      throw Exception(
-          'Error setting last_updated for ${slug.fullName} in $type $body: ${response.body}');
-    }
-  }
-
-  Future<void> deleteAllData() async {
-    final uri = Uri.parse('$firebaseUrl${type.name}/data/${slug.toUrl()}.json');
-    final response = await http.delete(uri);
-    if (response.statusCode != 200) {
-      throw Exception(
-          'Error delete data for ${slug.fullName} in $type: ${response.body}');
-    }
-  }
-
-  Future<void> addData(String data) async {
-    final uri = Uri.parse('$firebaseUrl${type.name}/data/${slug.toUrl()}.json');
+  Future<void> addData(String data, String dataType) async {
+    final uri = Uri.parse('$firebaseUrl${type.name}/$dataType.json');
     final response = await http.patch(uri, body: data);
     if (response.statusCode != 200) {
-      throw Exception(
-          'Error delete data for ${slug.fullName} in $type: ${response.body}');
+      throw Exception('Error adding data $data in $type: ${response.body}');
     }
   }
 
-  static Future<void> saveGooglers(String googlers) async {
+  static Future<void> saveGooglers(List googlers) async {
     final uri = Uri.parse('$firebaseUrl.json');
     final response =
         await http.patch(uri, body: jsonEncode({'googlers': googlers}));
@@ -63,12 +28,58 @@ class DatabaseReference {
       throw Exception('Error adding Googlers ${response.body}');
     }
   }
+
+  static Future<void> setLastUpdated(RepositorySlug slug) async {
+    final uri = Uri.parse('${firebaseUrl}last_updated.json');
+    final lastUpdated =
+        DateTime.now().subtract(Duration(hours: 1)).millisecondsSinceEpoch;
+    final response =
+        await http.patch(uri, body: jsonEncode({slug.toUrl(): lastUpdated}));
+    if (response.statusCode != 200) {
+      throw Exception('Error adding Googlers ${response.body}');
+    }
+  }
+
+  static Future<Map<RepositorySlug, DateTime?>> getLastUpdated() async {
+    final uri = Uri.parse('${firebaseUrl}last_updated.json');
+    final response = await http.get(uri);
+    if (response.statusCode != 200) {
+      throw Exception('Error adding Googlers ${response.body}');
+    }
+    final map = (jsonDecode(response.body) ?? <String, dynamic>{})
+        as Map<String, dynamic>;
+    return map.map((key, value) => MapEntry(
+        RepositorySlugExtension.fromUrl(key),
+        DateTime.fromMillisecondsSinceEpoch(value)));
+  }
+
+  static List<T> extractDataFrom<T>(
+    Map<String, dynamic> idsToData,
+    T Function(Map<String, dynamic> json) fromJson,
+  ) {
+    final list = <T>[];
+    for (final idToData in idsToData.entries) {
+      // ignore: unused_local_variable
+      final id = idToData.key;
+      final data = fromJson(idToData.value);
+      list.add(data);
+    }
+    return list;
+  }
 }
 
-extension on RepositorySlug {
+extension RepositorySlugExtension on RepositorySlug {
   String toUrl() {
     final ownerClean = owner.replaceAll(r'.', r',');
     final nameClean = name.replaceAll(r'.', r',');
     return '$ownerClean:$nameClean';
+  }
+
+  static RepositorySlug fromUrl(String url) {
+    final split = url.split(':');
+    final owner = split[0];
+    final name = split[1];
+    return RepositorySlug(
+        owner.replaceAll(r',', r'.'), name.replaceAll(r',', r'.'));
   }
 }
