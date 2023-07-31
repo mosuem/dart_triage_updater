@@ -21,6 +21,8 @@ class TriageUpdater {
     if (updateTypes.contains(UpdateType.googlers)) {
       await updateGooglers(github);
     }
+    updater.add('Done!');
+    updater.close();
   }
 
   Future<void> updateGooglers(GitHub github) async {
@@ -34,8 +36,6 @@ class TriageUpdater {
     final googlers = (googlersGoogle + googlersDart).toSet().toList();
     updater.add('Store googlers in database');
     await DatabaseReference.saveGooglers(googlers);
-    updater.add('Done!');
-    updater.close();
   }
 
   Future<void> update() async {
@@ -55,14 +55,12 @@ class TriageUpdater {
         updater.add(
             'Get data for ${slug.fullName} with ${github.rateLimitRemaining} '
             'remaining requests, repo $i/${repos.length}');
-        await saveIssues(slug, lastUpdated);
+        await saveIssues(slug, lastUpdated[slug]);
         await DatabaseReference.setLastUpdated(slug);
       } catch (e) {
         updater.add(e.toString());
       }
     }
-
-    updater.close();
   }
 
   Future<List<User>> getReviewers(RepositorySlug slug, PullRequest pr) async {
@@ -78,14 +76,13 @@ class TriageUpdater {
     return reviewers;
   }
 
-  Future<void> saveIssues(
-      RepositorySlug slug, Map<RepositorySlug, DateTime?> lastUpdated) async {
+  Future<void> saveIssues(RepositorySlug slug, DateTime? lastUpdated) async {
     final issues = await github.issues
         .listByRepo(
           slug,
           perPage: 5000,
           state: 'all',
-          since: lastUpdated[slug],
+          since: lastUpdated,
         )
         .toList();
     await wait();

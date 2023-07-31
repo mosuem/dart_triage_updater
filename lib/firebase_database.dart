@@ -31,9 +31,10 @@ class DatabaseReference {
 
   static Future<void> setLastUpdated(RepositorySlug slug) async {
     final uri = Uri.parse('${firebaseUrl}last_updated.json');
-    final response = await http.patch(uri,
-        body:
-            jsonEncode({slug.toUrl(): DateTime.now().millisecondsSinceEpoch}));
+    final lastUpdated =
+        DateTime.now().subtract(Duration(hours: 1)).millisecondsSinceEpoch;
+    final response =
+        await http.patch(uri, body: jsonEncode({slug.toUrl(): lastUpdated}));
     if (response.statusCode != 200) {
       throw Exception('Error adding Googlers ${response.body}');
     }
