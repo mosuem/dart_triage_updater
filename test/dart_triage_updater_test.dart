@@ -42,11 +42,11 @@ void main() {
       final dateTime = await DatabaseReference.getLastUpdated();
       expect(
         dateTime[repositorySlug]!.millisecondsSinceEpoch,
-        closeTo(DateTime.now().millisecondsSinceEpoch,
+        closeTo(
+            DateTime.now().subtract(Duration(hours: 1)).millisecondsSinceEpoch,
             Duration(seconds: 1).inMilliseconds),
       );
     },
-    skip: true,
   );
 
   test(
@@ -66,9 +66,7 @@ void main() {
     'save issues',
     () async {
       await TriageUpdater(getGithub()).saveIssues(
-        RepositorySlug('mosuem', 'dart_pr_dashboard'),
-        {},
-      );
+          RepositorySlug('mosuem', 'dart_pr_dashboard'), null, true);
     },
     skip: true,
   );

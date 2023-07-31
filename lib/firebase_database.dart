@@ -46,7 +46,8 @@ class DatabaseReference {
     if (response.statusCode != 200) {
       throw Exception('Error adding Googlers ${response.body}');
     }
-    final map = (jsonDecode(response.body) ?? {}) as Map<String, dynamic>;
+    final map = (jsonDecode(response.body) ?? <String, dynamic>{})
+        as Map<String, dynamic>;
     return map.map((key, value) => MapEntry(
         RepositorySlugExtension.fromUrl(key),
         DateTime.fromMillisecondsSinceEpoch(value)));

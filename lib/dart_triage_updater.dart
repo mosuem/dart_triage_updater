@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:github/github.dart';
 
@@ -16,7 +17,7 @@ class TriageUpdater {
 
   Future<void> updateThese(List<UpdateType> updateTypes) async {
     if (updateTypes.contains(UpdateType.issues)) {
-      await update();
+      await update(updateTypes.contains(UpdateType.pullrequests));
     }
     if (updateTypes.contains(UpdateType.googlers)) {
       await updateGooglers(github);
@@ -38,7 +39,7 @@ class TriageUpdater {
     await DatabaseReference.saveGooglers(googlers);
   }
 
-  Future<void> update() async {
+  Future<void> update(bool getPullRequests) async {
     final lastUpdated = await DatabaseReference.getLastUpdated();
     final repositories =
         github.repositories.listOrganizationRepositories('dart-lang');
@@ -55,7 +56,7 @@ class TriageUpdater {
         updater.add(
             'Get data for ${slug.fullName} with ${github.rateLimitRemaining} '
             'remaining requests, repo $i/${repos.length}');
-        await saveIssues(slug, lastUpdated[slug]);
+        await saveIssues(slug, lastUpdated[slug], getPullRequests);
         await DatabaseReference.setLastUpdated(slug);
       } catch (e) {
         updater.add(e.toString());
@@ -76,7 +77,8 @@ class TriageUpdater {
     return reviewers;
   }
 
-  Future<void> saveIssues(RepositorySlug slug, DateTime? lastUpdated) async {
+  Future<void> saveIssues(
+      RepositorySlug slug, DateTime? lastUpdated, bool getPullRequests) async {
     final issues = await github.issues
         .listByRepo(
           slug,
@@ -90,7 +92,7 @@ class TriageUpdater {
       final issuePR = issue.pullRequest;
       if (issuePR == null) {
         await saveIssue(slug, issue);
-      } else {
+      } else if (getPullRequests) {
         final prNumberStr = issuePR.htmlUrl!.split('/').last;
         final prNumber = int.parse(prNumberStr);
         final pullRequest = await github.pullRequests.get(slug, prNumber);
@@ -119,7 +121,7 @@ class TriageUpdater {
   Future<void> savePullRequest(RepositorySlug slug, PullRequest pr,
       [UpdateType type = UpdateType.pullrequests]) async {
     final ref = DatabaseReference(type);
-    updater.add('\tHandle  PR ${pr.number!} from ${slug.fullName}');
+    updater.add('\tHandle PR ${pr.number!} from ${slug.fullName}');
     try {
       final timeline =
           await github.issues.listTimeline(slug, pr.number!).toList();
