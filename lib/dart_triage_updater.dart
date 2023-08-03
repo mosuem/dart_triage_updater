@@ -40,7 +40,7 @@ class TriageUpdater {
   }
 
   Future<void> update(bool getPullRequests) async {
-    final lastUpdated = await DatabaseReference.getLastUpdated();
+    final lastUpdated = {};
     final repositories =
         github.repositories.listOrganizationRepositories('dart-lang');
     final dartLangRepos = await repositories

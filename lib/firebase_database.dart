@@ -40,19 +40,6 @@ class DatabaseReference {
     }
   }
 
-  static Future<Map<RepositorySlug, DateTime?>> getLastUpdated() async {
-    final uri = Uri.parse('${firebaseUrl}last_updated.json');
-    final response = await http.get(uri);
-    if (response.statusCode != 200) {
-      throw Exception('Error adding Googlers ${response.body}');
-    }
-    final map = (jsonDecode(response.body) ?? <String, dynamic>{})
-        as Map<String, dynamic>;
-    return map.map((key, value) => MapEntry(
-        RepositorySlugExtension.fromUrl(key),
-        DateTime.fromMillisecondsSinceEpoch(value)));
-  }
-
   static List<T> extractDataFrom<T>(
     Map<String, dynamic> idsToData,
     T Function(Map<String, dynamic> json) fromJson,
