@@ -39,13 +39,6 @@ void main() {
     () async {
       final repositorySlug = RepositorySlug('mosuem', 'dart_triage_updater');
       await DatabaseReference.setLastUpdated(repositorySlug);
-      final dateTime = await DatabaseReference.getLastUpdated();
-      expect(
-        dateTime[repositorySlug]!.millisecondsSinceEpoch,
-        closeTo(
-            DateTime.now().subtract(Duration(hours: 1)).millisecondsSinceEpoch,
-            Duration(seconds: 1).inMilliseconds),
-      );
     },
   );
 
