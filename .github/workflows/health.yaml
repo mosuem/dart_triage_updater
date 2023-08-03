@@ -8,5 +8,6 @@ jobs:
     uses: mosuem/ecosystem/.github/workflows/health.yaml@main
     with:
       coverage_web: false
+      upload_coverage: false
     permissions:
       pull-requests: write
