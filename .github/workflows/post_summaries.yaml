@@ -11,5 +11,3 @@ on:
 jobs:
   upload:
     uses: mosuem/ecosystem/.github/workflows/post_summaries.yaml@main
-    permissions:
-      pull-requests: write
