@@ -8,3 +8,5 @@ jobs:
     uses: mosuem/ecosystem/.github/workflows/health.yaml@main
     with:
       coverage_web: true #If the coverage should run browser tests
+    permissions:
+      pull-requests: write
